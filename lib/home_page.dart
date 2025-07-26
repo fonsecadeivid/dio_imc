@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:dio_imc/imc.dart';
 import 'package:dio_imc/model/person_model.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -19,7 +17,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String imcStatus = '';
 
   final List<PersonModel> personList = [];
-  late SharedPreferences prefs;
+  late Box<PersonModel> personBox;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController heightController = TextEditingController();
@@ -32,22 +30,16 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _initPrefsAndLoadData();
+    _loadHivePersonData();
   }
 
-  Future<void> _initPrefsAndLoadData() async {
-    prefs = await SharedPreferences.getInstance();
-    final stringListPerson = prefs.getStringList('person');
+  Future<void> _loadHivePersonData() async {
+    personBox = Hive.box<PersonModel>('personBox');
 
-    if (stringListPerson != null) {
-      final list = stringListPerson
-          .map((str) => PersonModel.fromJson(jsonDecode(str)))
-          .toList();
-      setState(() {
-        personList.clear();
-        personList.addAll(list);
-      });
-    }
+    setState(() {
+      personList.clear();
+      personList.addAll(personBox.values);
+    });
   }
 
   void clearData() {
@@ -187,6 +179,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                   return;
                                 }
 
+                                final newPerson = PersonModel(
+                                  name: person.name,
+                                  height: person.height,
+                                  weight: person.weight,
+                                );
+
+                                await personBox.add(newPerson);
+
                                 setState(() {
                                   imcStatus = Imc.getIMCStatus(
                                     height: person.height,
@@ -200,16 +200,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ),
                                   );
                                 });
-                                final stringListPerson = personList
-                                    .map(
-                                      (personModel) =>
-                                          jsonEncode(personModel.toJson()),
-                                    )
-                                    .toList();
-                                await prefs.setStringList(
-                                  'person',
-                                  stringListPerson,
-                                );
                               },
                               child: const Text('Calcular IMC'),
                             ),

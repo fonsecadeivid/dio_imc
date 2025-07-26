@@ -1,7 +1,13 @@
 import 'package:dio_imc/home_page.dart';
+import 'package:dio_imc/model/person_model.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  Hive.registerAdapter(PersonModelAdapter());
+  await Hive.openBox<PersonModel>('personBox');
   runApp(const MyApp());
 }
 
