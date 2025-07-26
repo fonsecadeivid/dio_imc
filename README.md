@@ -7,5 +7,5 @@ Na branch "feature/aprimorar_imc" o app está configurado para trabalhar com o S
 
 Na branch "feature/implement_hive" o app está configurado para trabalhar com o Hive.
 
-Na branch "" o app está configurado para trabalhar com o Sqflite.
+Na branch "feature/impelementando_sqflite" o app está configurado para trabalhar com o Sqflite.
 
