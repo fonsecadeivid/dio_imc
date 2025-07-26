@@ -1,7 +1,16 @@
+import 'package:dio_imc/core/database/person_database.dart';
 import 'package:dio_imc/home_page.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Deletar o banco antigo para forçar recriação
+  //await PersonDatabase.instance.deleteDatabaseFile();
+
+  // Inicializar o banco de dados
+  await PersonDatabase.instance.initializeDatabase();
+
   runApp(const MyApp());
 }
 

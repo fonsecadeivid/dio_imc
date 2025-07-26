@@ -1,9 +1,7 @@
-import 'dart:convert';
-
+import 'package:dio_imc/core/database/person_database.dart';
 import 'package:dio_imc/imc.dart';
 import 'package:dio_imc/model/person_model.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -19,7 +17,6 @@ class _MyHomePageState extends State<MyHomePage> {
   String imcStatus = '';
 
   final List<PersonModel> personList = [];
-  late SharedPreferences prefs;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController heightController = TextEditingController();
@@ -32,22 +29,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _initPrefsAndLoadData();
+    _loadPersonsFromDB();
   }
 
-  Future<void> _initPrefsAndLoadData() async {
-    prefs = await SharedPreferences.getInstance();
-    final stringListPerson = prefs.getStringList('person');
+  Future<void> _loadPersonsFromDB() async {
+    debugPrint('Iniciando carregamento de pessoas do banco...');
+    final list = await PersonDatabase.instance.readAll();
+    debugPrint('Lista carregada do banco: ${list.length} pessoas');
 
-    if (stringListPerson != null) {
-      final list = stringListPerson
-          .map((str) => PersonModel.fromJson(jsonDecode(str)))
-          .toList();
-      setState(() {
-        personList.clear();
-        personList.addAll(list);
-      });
-    }
+    setState(() {
+      personList.clear();
+      personList.addAll(list);
+      debugPrint('Lista atualizada no estado: ${personList.length} pessoas');
+    });
   }
 
   void clearData() {
@@ -174,9 +168,15 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             ElevatedButton(
                               onPressed: () async {
+                                debugPrint('Botão Calcular IMC pressionado');
+                                debugPrint(
+                                  'Dados da pessoa: ${person.toJson()}',
+                                );
+
                                 if (person.name.isEmpty ||
                                     person.height <= 0 ||
                                     person.weight <= 0) {
+                                  debugPrint('Dados inválidos - não salvando');
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -187,29 +187,28 @@ class _MyHomePageState extends State<MyHomePage> {
                                   return;
                                 }
 
+                                final newPerson = PersonModel(
+                                  name: person.name,
+                                  height: person.height,
+                                  weight: person.weight,
+                                );
+
+                                debugPrint(
+                                  'Salvando nova pessoa: ${newPerson.toJson()}',
+                                );
+                                await PersonDatabase.instance.create(newPerson);
+                                debugPrint(
+                                  'Pessoa salva, recarregando lista...',
+                                );
+                                _loadPersonsFromDB();
+
                                 setState(() {
                                   imcStatus = Imc.getIMCStatus(
                                     height: person.height,
                                     weight: person.weight,
                                   );
-                                  personList.add(
-                                    PersonModel(
-                                      name: person.name,
-                                      height: person.height,
-                                      weight: person.weight,
-                                    ),
-                                  );
                                 });
-                                final stringListPerson = personList
-                                    .map(
-                                      (personModel) =>
-                                          jsonEncode(personModel.toJson()),
-                                    )
-                                    .toList();
-                                await prefs.setStringList(
-                                  'person',
-                                  stringListPerson,
-                                );
+                                debugPrint('Estado atualizado');
                               },
                               child: const Text('Calcular IMC'),
                             ),
